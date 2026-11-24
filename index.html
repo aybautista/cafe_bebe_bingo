@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>CAFÉ bébé — Melon Belly Bingo</title>
+
+  <!-- Tailwind CSS for responsive layout and utility styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Libre Bodoni (Display Serif), Pinyon Script (Bickham-style Script), DM Sans (Crisp UI & Grid) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Libre+Bodoni:ital,wght@0,400;0,600;0,700;1,400&family=Pinyon+Script&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ============================================================
+       CAFÉ BÉBÉ BRAND GUIDE — DESIGN TOKENS
+       ============================================================ */
+    :root {
+      --linen-bg: #F4F0E8;
+      --cream-card: #FAF7F2;
+      --espresso: #3B2316;
+      --mocha: #734E3A;
+      --matcha-soft: #C8D6B9;
+      --matcha-deep: #5E7554;
+      --oat-border: #DDD3C3;
+      --warm-gold: #C89B4F;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--linen-bg);
+      color: var(--espresso);
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      min-height: 100dvh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Subtle warm linen paper grain overlay */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.32;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.18'/%3E%3C/svg%3E");
+    }
+
+    .font-serif-display {
+      font-family: 'Libre Bodoni', Georgia, 'Times New Roman', serif;
+    }
+
+    .font-script {
+      font-family: 'Pinyon Script', cursive;
+    }
+
+    /* Boutique Café Menu Card Frame */
+    .cafe-card {
+      background-color: var(--cream-card);
+      border: 1.5px solid var(--espresso);
+      box-shadow: 0 10px 30px rgba(59, 35, 22, 0.07);
+      position: relative;
+    }
+
+    .cafe-card-inner {
+      border: 1px solid var(--oat-border);
+    }
+
+    /* ============================================================
+       BINGO GRID CELLS & INTERACTION STATES
+       ============================================================ */
+    .bingo-cell {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      min-height: 76px;
+      padding: 6px 4px;
+      border-radius: 10px;
+      background-color: #FFFFFF;
+      border: 1px solid var(--oat-border);
+      box-shadow: 0 1px 3px rgba(59, 35, 22, 0.04);
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  background-color 0.2s ease,
+                  border-color 0.2s ease,
+                  box-shadow 0.2s ease;
+      overflow: hidden;
+    }
+
+    @media (min-width: 480px) {
+      .bingo-cell {
+        min-height: 92px;
+        padding: 8px 6px;
+        border-radius: 12px;
+      }
+    }
+
+    .bingo-cell:active {
+      transform: scale(0.94);
+    }
+
+    /* Crisp, readable prompt typography on mobile screens */
+    .cell-text {
+      position: relative;
+      z-index: 2;
+      font-size: clamp(9.5px, 2.5vw, 12.5px);
+      line-height: 1.2;
+      font-weight: 500;
+      color: var(--espresso);
+      word-break: break-word;
+      overflow-wrap: break-word;
+      hyphens: auto;
+    }
+
+    /* Marked square state: Soft Matcha Green + Espresso border */
+    .bingo-cell.is-marked {
+      background-color: var(--matcha-soft);
+      border: 1.5px solid var(--espresso);
+      box-shadow: 0 3px 8px rgba(59, 35, 22, 0.12);
+      animation: popMark 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .bingo-cell.is-marked .cell-text {
+      color: var(--espresso);
+      font-weight: 700;
+    }
+
+    /* Free space styling */
+    .bingo-cell.is-free {
+      background: linear-gradient(145deg, #D5E2C8 0%, #C8D6B9 100%);
+      border: 1.5px solid var(--espresso);
+      cursor: default;
+    }
+
+    .bingo-cell.is-free .cell-text {
+      color: var(--espresso);
+      font-weight: 700;
+    }
+
+    /* Winning line warm golden-espresso glow */
+    .bingo-cell.is-winner {
+      border: 1.5px solid var(--warm-gold);
+      box-shadow: 0 0 0 2px rgba(200, 155, 79, 0.55), 0 4px 14px rgba(59, 35, 22, 0.22);
+      animation: winnerGlow 2.2s infinite ease-in-out;
+    }
+
+    /* Translucent matcha botanical watermark inside marked tiles */
+    .mark-watermark {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transform: scale(0.55);
+      transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .bingo-cell.is-marked .mark-watermark {
+      opacity: 0.18;
+      transform: scale(1);
+    }
+
+    /* Crisp Deeper Matcha Check Badge */
+    .check-badge {
+      position: absolute;
+      top: 3px;
+      right: 3px;
+      width: 16px;
+      height: 16px;
+      border-radius: 9999px;
+      background-color: var(--matcha-deep);
+      color: #FAF7F2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transform: scale(0);
+      transition: opacity 0.18s ease, transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .bingo-cell.is-marked .check-badge {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    @keyframes popMark {
+      0% { transform: scale(0.92); }
+      55% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes winnerGlow {
+      0%, 100% {
+        box-shadow: 0 0 0 2px rgba(200, 155, 79, 0.5), 0 4px 12px rgba(59, 35, 22, 0.18);
+      }
+      50% {
+        box-shadow: 0 0 0 3px rgba(200, 155, 79, 0.88), 0 6px 18px rgba(59, 35, 22, 0.3);
+      }
+    }
+
+    /* Modal animations */
+    .modal-card {
+      animation: modalPop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes modalPop {
+      0% { opacity: 0; transform: scale(0.92) translateY(10px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    /* Confetti canvas overlay */
+    #confetti-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 70;
+    }
+
+    /* Subtle live pulse dot */
+    .live-dot {
+      animation: livePulse 2s infinite;
+    }
+
+    @keyframes livePulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.85); }
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-[#C8D6B9] selection:text-[#3B2316]">
+
+  <!-- Full-screen Canvas for Café Bébé Confetti Celebration -->
+  <canvas id="confetti-canvas" aria-hidden="true"></canvas>
+
+  <!-- Main Centered Mobile-First App Container -->
+  <div class="relative z-10 w-full max-w-lg mx-auto px-2.5 sm:px-4 py-4 sm:py-6 flex flex-col min-h-[100dvh]">
+
+    <!-- ============================================================
+         LIVE WINNER BANNER (Visible to all guests once someone wins)
+         ============================================================ -->
+    <div id="live-winner-banner" class="hidden mb-3">
+      <div class="rounded-2xl bg-[#3B2316] text-[#FAF7F2] px-3.5 py-2.5 shadow-md border border-[#734E3A] flex items-center justify-between gap-2.5">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-base shrink-0" aria-hidden="true">🏆</span>
+          <div class="min-w-0">
+            <p id="live-banner-text" class="text-xs sm:text-sm font-semibold truncate">
+              Bingo Winner!
+            </p>
+            <p id="live-banner-sub" class="text-[10px] sm:text-[11px] text-[#DDD3C3] truncate">
+              Live CAFÉ bébé Winners Board
+            </p>
+          </div>
+        </div>
+        <button
+          id="banner-view-winners-btn"
+          type="button"
+          class="shrink-0 px-3 py-1.5 rounded-xl bg-[#C8D6B9] hover:bg-[#b8caaa] text-[#3B2316] text-xs font-bold transition cursor-pointer"
+        >
+          View Winners
+        </button>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         START / WELCOME SCREEN ("RESERVE YOUR SEAT")
+         ============================================================ -->
+    <main id="welcome-screen" class="hidden flex-1 flex flex-col items-center justify-center py-2">
+      <div class="w-full cafe-card rounded-3xl p-2 sm:p-2.5">
+        <div class="cafe-card-inner rounded-[20px] px-5 py-6 sm:px-8 sm:py-8 text-center">
+
+          <!-- Minimal Café Cup & Matcha Leaf Emblem -->
+          <div class="flex justify-center mb-2">
+            <svg class="w-12 h-12 text-[#3B2316]" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <!-- Steam wisps -->
+              <path d="M24 14C24 11 26 10 26 7" stroke="#734E3A" />
+              <path d="M32 13C32 10 34 9 34 6" stroke="#734E3A" />
+              <!-- Cup body -->
+              <path d="M16 22H42V35C42 42.18 36.18 48 29 48C21.82 48 16 42.18 16 35V22Z" fill="#FAF7F2" />
+              <!-- Cup handle -->
+              <path d="M42 26H46C49.31 26 52 28.69 52 32C52 35.31 49.31 38 46 38H41.5" />
+              <!-- Saucer -->
+              <path d="M12 52C17 54.5 41 54.5 46 52" />
+              <!-- Matcha leaf accent inside cup -->
+              <path d="M25 36C25 31 30 28 34 28C34 33 30 37 25 36Z" fill="#C8D6B9" stroke="#5E7554" stroke-width="1.4" />
+            </svg>
+          </div>
+
+          <!-- CAFÉ bébé Lockup -->
+          <div class="flex items-baseline justify-center gap-2 leading-none">
+            <span class="font-serif-display text-3xl sm:text-4xl font-bold tracking-[0.14em] text-[#3B2316]">CAFÉ</span>
+            <span class="font-script text-5xl sm:text-6xl text-[#734E3A] -ml-1">bébé</span>
+          </div>
+
+          <p class="mt-2 text-[10px] sm:text-xs font-bold tracking-[0.2em] uppercase text-[#734E3A]">
+            A Little Bébé Is Brewing • Melon Belly Bingo
+          </p>
+          <p class="mt-1 text-xs text-[#734E3A]/90 italic font-serif-display">
+            Celebrating Brayden &amp; Elise
+          </p>
+
+          <!-- Decorative Menu Divider -->
+          <div class="flex items-center justify-center gap-3 my-5">
+            <span class="h-px flex-1 bg-[#DDD3C3]"></span>
+            <span class="font-serif-display text-[11px] font-semibold tracking-[0.22em] uppercase text-[#3B2316]">
+              Reserve Your Seat
+            </span>
+            <span class="h-px flex-1 bg-[#DDD3C3]"></span>
+          </div>
+
+          <p class="text-sm text-[#734E3A] leading-relaxed mb-6">
+            Brayden is strapping on a watermelon to experience pregnancy! Watch closely, tap squares as they happen, and get <strong class="text-[#3B2316]">5 in a row</strong> to win.
+          </p>
+
+          <!-- Café Order Entry Form -->
+          <form id="start-form" class="space-y-4 text-left" novalidate>
+            <div>
+              <label for="player-name-input" class="block text-xs font-bold uppercase tracking-[0.15em] text-[#3B2316] mb-1.5 ml-1">
+                Guest Name
+              </label>
+              <input
+                id="player-name-input"
+                type="text"
+                maxlength="28"
+                autocomplete="name"
+                placeholder="e.g., Aunt Sarah"
+                required
+                class="w-full px-4 py-3.5 rounded-xl border border-[#734E3A]/40 bg-white text-[#3B2316] placeholder-[#734E3A]/50 font-medium text-base focus:outline-none focus:border-[#3B2316] focus:ring-2 focus:ring-[#C8D6B9] transition"
+              />
+              <p id="name-error" class="hidden text-xs font-semibold text-[#9B2C2C] mt-1.5 ml-1">
+                Please enter your name so we can celebrate your win!
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              class="w-full py-3.5 px-6 rounded-xl bg-[#3B2316] hover:bg-[#523221] active:scale-[0.98] text-[#FAF7F2] font-serif-display font-semibold tracking-[0.12em] uppercase text-sm shadow-md transition cursor-pointer"
+            >
+              Brew My Bingo Card
+            </button>
+          </form>
+
+          <p class="text-[11px] text-[#734E3A]/80 mt-5">
+            Your unique card saves automatically on this phone.
+          </p>
+        </div>
+      </div>
+    </main>
+
+    <!-- ============================================================
+         GAME SCREEN (Active CAFÉ bébé Menu Bingo Card)
+         ============================================================ -->
+    <main id="game-screen" class="hidden flex-1 flex flex-col">
+
+      <!-- Chic Café Menu Header Card -->
+      <header class="cafe-card rounded-2xl p-1.5 mb-2.5">
+        <div class="cafe-card-inner rounded-[12px] px-3 py-2.5 text-center">
+          <div class="flex items-baseline justify-center gap-1.5 leading-none">
+            <span class="font-serif-display text-2xl sm:text-3xl font-bold tracking-[0.14em] text-[#3B2316]">CAFÉ</span>
+            <span class="font-script text-4xl sm:text-5xl text-[#734E3A] -ml-1">bébé</span>
+          </div>
+          <p class="mt-1 text-[9.5px] sm:text-[11px] font-bold tracking-[0.18em] uppercase text-[#734E3A]">
+            A Little Bébé Is Brewing • Melon Belly Bingo
+          </p>
+          <p class="text-[11px] sm:text-xs text-[#734E3A] italic font-serif-display mt-0.5">
+            Celebrating Brayden &amp; Elise
+          </p>
+
+          <!-- Compact Player & Card ID Bar -->
+          <div class="mt-2.5 pt-2 border-t border-[#DDD3C3] flex items-center justify-between gap-2 text-left">
+            <div class="min-w-0 flex items-center gap-1.5">
+              <span class="text-[10px] uppercase tracking-wider font-bold text-[#734E3A]">Guest:</span>
+              <span id="display-player-name" class="text-xs sm:text-sm font-bold text-[#3B2316] truncate"></span>
+            </div>
+            <span
+              id="display-card-id"
+              class="shrink-0 px-2.5 py-0.5 rounded-full bg-[#C8D6B9]/65 text-[#3B2316] border border-[#5E7554]/30 text-[10px] sm:text-xs font-bold tracking-wider"
+            >
+              CARD #----
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Subtle Status Strip -->
+      <section class="flex items-center justify-between gap-2 px-2 py-1.5 mb-1.5">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-[#5E7554]"></span>
+          <span id="marked-count-label" class="text-xs font-bold text-[#3B2316]">
+            1 / 25 Marked
+          </span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button
+            id="bingo-badge"
+            type="button"
+            class="hidden px-2.5 py-0.5 rounded-full bg-[#3B2316] text-[#FAF7F2] text-[11px] font-bold tracking-wide shadow-xs cursor-pointer"
+            title="Tap to view your winner card"
+          >
+            🎉 YOU'RE A WINNER!
+          </button>
+          <span id="status-hint" class="text-[11px] font-medium text-[#734E3A]">
+            Tap squares as they happen
+          </span>
+        </div>
+      </section>
+
+      <!-- 5x5 Café Menu Bingo Board -->
+      <section class="cafe-card rounded-2xl p-2 sm:p-3">
+        <!-- B-I-N-G-O Header Row -->
+        <div class="grid grid-cols-5 gap-1.5 sm:gap-2 mb-1.5 sm:mb-2" aria-hidden="true">
+          <div class="py-1.5 rounded-lg bg-[#3B2316] text-[#FAF7F2] font-serif-display font-bold text-center text-sm sm:text-base tracking-widest">B</div>
+          <div class="py-1.5 rounded-lg bg-[#734E3A] text-[#FAF7F2] font-serif-display font-bold text-center text-sm sm:text-base tracking-widest">I</div>
+          <div class="py-1.5 rounded-lg bg-[#3B2316] text-[#FAF7F2] font-serif-display font-bold text-center text-sm sm:text-base tracking-widest">N</div>
+          <div class="py-1.5 rounded-lg bg-[#734E3A] text-[#FAF7F2] font-serif-display font-bold text-center text-sm sm:text-base tracking-widest">G</div>
+          <div class="py-1.5 rounded-lg bg-[#3B2316] text-[#FAF7F2] font-serif-display font-bold text-center text-sm sm:text-base tracking-widest">O</div>
+        </div>
+
+        <!-- 5x5 Interactive Grid -->
+        <div
+          id="bingo-grid"
+          class="grid grid-cols-5 gap-1.5 sm:gap-2"
+          role="grid"
+          aria-label="CAFÉ bébé Melon Belly Bingo Card"
+        >
+          <!-- 25 cells populated dynamically -->
+        </div>
+      </section>
+
+      <!-- Subtle Footer Controls -->
+      <footer class="mt-auto pt-4 pb-2 flex flex-col items-center gap-2">
+        <div class="flex flex-wrap items-center justify-center gap-2">
+          <button
+            id="open-how-to-btn"
+            type="button"
+            class="px-3 py-2 rounded-xl bg-[#FAF7F2] border border-[#DDD3C3] hover:border-[#734E3A] text-[#3B2316] text-xs font-semibold transition cursor-pointer"
+          >
+            How to Play
+          </button>
+
+          <button
+            id="open-winners-btn"
+            type="button"
+            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FAF7F2] border border-[#3B2316]/35 hover:border-[#3B2316] text-[#3B2316] text-xs font-bold transition cursor-pointer"
+          >
+            <span>🏆 Winners</span>
+            <span
+              id="winners-count-badge"
+              class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#C8D6B9] text-[#3B2316] text-[10px] font-extrabold"
+            >
+              0
+            </span>
+          </button>
+
+          <button
+            id="open-reset-btn"
+            type="button"
+            class="px-3 py-2 rounded-xl text-[#734E3A] hover:text-[#3B2316] text-xs font-medium underline underline-offset-4 transition cursor-pointer"
+          >
+            New Card / Reset
+          </button>
+        </div>
+
+        <p class="text-[10px] text-[#734E3A]/80 flex items-center gap-1.5">
+          <span id="sync-status-dot" class="w-1.5 h-1.5 rounded-full bg-[#5E7554] live-dot"></span>
+          <span id="sync-status-text">Live winner board connected • Card saved on phone</span>
+        </p>
+      </footer>
+    </main>
+  </div>
+
+  <!-- ============================================================
+       "YOU'RE A WINNER!" CELEBRATION MODAL
+       ============================================================ -->
+  <div
+    id="bingo-modal"
+    class="hidden fixed inset-0 z-50 bg-[#3B2316]/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="bingo-modal-title"
+  >
+    <div class="modal-card w-full max-w-sm cafe-card rounded-3xl p-2 my-auto">
+      <div class="cafe-card-inner rounded-[20px] p-5 sm:p-6 text-center relative">
+
+        <!-- Celebration Badge -->
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C8D6B9] text-[#3B2316] text-[11px] font-bold uppercase tracking-[0.15em] mb-2">
+          <span>🏆</span>
+          <span id="modal-placement-badge">Verified Bingo</span>
+        </div>
+
+        <!-- Prominent "You're a winner!" Headline -->
+        <h2 id="bingo-modal-title" class="font-serif-display text-3xl sm:text-4xl font-bold text-[#3B2316] leading-tight">
+          You're a winner!
+        </h2>
+        <p id="bingo-modal-script" class="font-script text-3xl text-[#734E3A] -mt-1 mb-2">
+          Cheers to Café Bébé!
+        </p>
+
+        <p id="bingo-modal-subtitle" class="text-xs sm:text-sm text-[#734E3A] mb-4">
+          Show this card to the host — your win has been posted to the live Winners Board!
+        </p>
+
+        <!-- Winner Identity Box -->
+        <div class="bg-white rounded-2xl border border-[#DDD3C3] p-3.5 mb-3.5 text-left">
+          <div class="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-[#DDD3C3]">
+            <div class="min-w-0">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-[#734E3A]">Winner</div>
+              <div id="modal-player-name" class="text-base sm:text-lg font-bold text-[#3B2316] truncate">
+                Guest Name
+              </div>
+            </div>
+            <span id="modal-card-id" class="shrink-0 px-2.5 py-1 rounded-full bg-[#F4F0E8] border border-[#DDD3C3] text-[#3B2316] text-xs font-bold tracking-wider">
+              CARD #----
+            </span>
+          </div>
+
+          <div class="text-[10px] font-bold uppercase tracking-wider text-[#5E7554] mb-1.5">
+            Winning Prompts (For Host Verification)
+          </div>
+          <ul id="modal-winning-prompts" class="space-y-1 text-xs text-[#3B2316]">
+            <!-- Populated dynamically -->
+          </ul>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="space-y-2">
+          <button
+            id="modal-view-winners-btn"
+            type="button"
+            class="w-full py-3 px-4 rounded-xl bg-[#3B2316] hover:bg-[#523221] text-[#FAF7F2] font-bold text-sm transition cursor-pointer"
+          >
+            View All Winners
+          </button>
+          <button
+            id="close-bingo-modal-btn"
+            type="button"
+            class="w-full py-3 px-4 rounded-xl bg-[#C8D6B9] hover:bg-[#b8caaa] text-[#3B2316] font-bold text-sm transition cursor-pointer"
+          >
+            Keep Playing (Go for Blackout!)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       WINNERS BOARD MODAL (Live Chronological List + Host Reset)
+       ============================================================ -->
+  <div
+    id="winners-modal"
+    class="hidden fixed inset-0 z-50 bg-[#3B2316]/60 backdrop-blur-xs flex items-center justify-center p-4"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="winners-modal-title"
+  >
+    <div class="modal-card w-full max-w-md cafe-card rounded-3xl p-2 max-h-[88dvh] flex flex-col">
+      <div class="cafe-card-inner rounded-[20px] p-5 flex flex-col max-h-full overflow-hidden">
+
+        <!-- Header -->
+        <div class="flex items-start justify-between gap-2 pb-3 border-b border-[#DDD3C3] shrink-0">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[#734E3A]">On The Menu</p>
+            <h2 id="winners-modal-title" class="font-serif-display text-2xl font-bold text-[#3B2316]">
+              Winners Board
+            </h2>
+          </div>
+          <button
+            id="close-winners-modal-btn"
+            type="button"
+            aria-label="Close Winners Board"
+            class="w-8 h-8 rounded-full bg-[#F4F0E8] hover:bg-[#DDD3C3] text-[#3B2316] flex items-center justify-center font-bold text-sm transition cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Scrollable Winners List -->
+        <div id="winners-list-container" class="flex-1 overflow-y-auto py-3 space-y-2.5">
+          <!-- Populated dynamically -->
+        </div>
+
+        <!-- Footer with Discreet Host Reset Option -->
+        <div class="pt-3 border-t border-[#DDD3C3] flex items-center justify-between gap-2 shrink-0">
+          <button
+            id="open-host-reset-btn"
+            type="button"
+            class="text-[11px] font-medium text-[#734E3A] hover:text-[#9B2C2C] underline underline-offset-4 transition cursor-pointer"
+          >
+            Host Reset Winners
+          </button>
+          <button
+            id="done-winners-modal-btn"
+            type="button"
+            class="px-4 py-2 rounded-xl bg-[#3B2316] text-[#FAF7F2] text-xs font-bold transition cursor-pointer"
+          >
+            Back to Card
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       HOW TO PLAY MODAL
+       ============================================================ -->
+  <div
+    id="how-to-modal"
+    class="hidden fixed inset-0 z-50 bg-[#3B2316]/60 backdrop-blur-xs flex items-center justify-center p-4"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="how-to-title"
+  >
+    <div class="modal-card w-full max-w-sm cafe-card rounded-3xl p-2">
+      <div class="cafe-card-inner rounded-[20px] p-5 sm:p-6">
+        <div class="text-center mb-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[#734E3A]">CAFÉ bébé Guide</p>
+          <h2 id="how-to-title" class="font-serif-display text-2xl font-bold text-[#3B2316]">
+            How to Play
+          </h2>
+        </div>
+
+        <ol class="space-y-2.5 text-sm text-[#3B2316] mb-5">
+          <li class="flex gap-2.5">
+            <span class="w-5 h-5 rounded-full bg-[#C8D6B9] text-[#3B2316] text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+            <span>Watch Brayden wear his watermelon belly during the shower.</span>
+          </li>
+          <li class="flex gap-2.5">
+            <span class="w-5 h-5 rounded-full bg-[#C8D6B9] text-[#3B2316] text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+            <span>Whenever he does something on your card, tap that square to stamp it in matcha green.</span>
+          </li>
+          <li class="flex gap-2.5">
+            <span class="w-5 h-5 rounded-full bg-[#C8D6B9] text-[#3B2316] text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
+            <span>Complete <strong>5 in a row</strong> (across, down, or diagonal) to win! Your name will appear on everyone's live Winners Board.</span>
+          </li>
+          <li class="flex gap-2.5">
+            <span class="w-5 h-5 rounded-full bg-[#C8D6B9] text-[#3B2316] text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">4</span>
+            <span>Want to keep going? Try filling all 25 squares for a <strong>Blackout</strong>!</span>
+          </li>
+        </ol>
+
+        <button
+          id="close-how-to-btn"
+          type="button"
+          class="w-full py-3 rounded-xl bg-[#3B2316] text-[#FAF7F2] font-bold text-sm transition cursor-pointer"
+        >
+          Got It!
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       CONFIRM RESET MY CARD MODAL
+       ============================================================ -->
+  <div
+    id="reset-modal"
+    class="hidden fixed inset-0 z-50 bg-[#3B2316]/60 backdrop-blur-xs flex items-center justify-center p-4"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="reset-modal-title"
+  >
+    <div class="modal-card w-full max-w-sm cafe-card rounded-3xl p-2">
+      <div class="cafe-card-inner rounded-[20px] p-5 sm:p-6 text-center">
+        <h2 id="reset-modal-title" class="font-serif-display text-xl font-bold text-[#3B2316] mb-1.5">
+          Brew a New Card?
+        </h2>
+        <p class="text-sm text-[#734E3A] leading-relaxed mb-5">
+          This clears your current board and marked squares so you can enter a name and generate a fresh card.
+        </p>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <button
+            id="cancel-reset-btn"
+            type="button"
+            class="py-3 px-4 rounded-xl bg-[#F4F0E8] border border-[#DDD3C3] text-[#3B2316] font-bold text-sm transition cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            id="confirm-reset-btn"
+            type="button"
+            class="py-3 px-4 rounded-xl bg-[#3B2316] text-[#FAF7F2] font-bold text-sm transition cursor-pointer"
+          >
+            Yes, Reset
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       CONFIRM HOST RESET WINNERS MODAL
+       ============================================================ -->
+  <div
+    id="host-reset-modal"
+    class="hidden fixed inset-0 z-[60] bg-[#3B2316]/70 backdrop-blur-xs flex items-center justify-center p-4"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="host-reset-title"
+  >
+    <div class="modal-card w-full max-w-sm cafe-card rounded-3xl p-2">
+      <div class="cafe-card-inner rounded-[20px] p-5 sm:p-6 text-center">
+        <h2 id="host-reset-title" class="font-serif-display text-xl font-bold text-[#3B2316] mb-1.5">
+          Clear All Winners?
+        </h2>
+        <p class="text-sm text-[#734E3A] leading-relaxed mb-5">
+          Host action: This will remove all recorded wins from the live Winners Board for everyone. Great for clearing test runs before the shower!
+        </p>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <button
+            id="cancel-host-reset-btn"
+            type="button"
+            class="py-3 px-4 rounded-xl bg-[#F4F0E8] border border-[#DDD3C3] text-[#3B2316] font-bold text-sm transition cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            id="confirm-host-reset-btn"
+            type="button"
+            class="py-3 px-4 rounded-xl bg-[#734E3A] hover:bg-[#3B2316] text-[#FAF7F2] font-bold text-sm transition cursor-pointer"
+          >
+            Clear Board
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       APPLICATION LOGIC + FIREBASE LIVE WINNERS SYNC
+       ============================================================ -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, doc, setDoc, deleteDoc, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    /**
+     * ============================================================
+     * HOST EDITABLE PROMPT POOL (36 Prompts for Brayden & Elise)
+     * ============================================================
+     */
+    const PROMPTS = [
+      "Struggles to tie shoes",
+      "Complains about back pain",
+      "Drops something & sighs",
+      "Needs help getting up",
+      "Bumps belly into a table",
+      "Waddles across the room",
+      "Rests a drink on the belly",
+      "Adjusts the tape/wrap",
+      "Says 'How do women do this?'",
+      "Takes a dramatic deep breath",
+      "Rubs belly affectionately",
+      "Struggles to sit in a chair",
+      "Asks how much time is left",
+      "Knocks something over with belly",
+      "Looks exhausted after 5 mins",
+      "Sweats or asks for a fan",
+      "Can't see his own feet",
+      "Tries to bend over and gives up",
+      "Sits with legs wide apart",
+      "Uses hands to support lower back",
+      "Says 'This is heavier than I thought'",
+      "Tries to pick something up with toes",
+      "Leans way back to balance",
+      "Gets teased by Elise",
+      "Someone pats his watermelon",
+      "Takes a selfie with the belly",
+      "Struggles to reach a snack",
+      "Makes a dad joke about the melon",
+      "Checks the clock/watch",
+      "Needs a cushion or pillow",
+      "Tucks shirt over the melon",
+      "Groans when standing up",
+      "Walks sideways through a tight spot",
+      "Asks for water",
+      "Pretends the baby kicked",
+      "Complains about gravity"
+    ];
+
+    const FREE_SPACE_TEXT = "Puts on the Watermelon";
+    const FREE_SPACE_INDEX = 12;
+    const CARD_STORAGE_KEY = "cafe_bebe_bingo_card_v2";
+    const FALLBACK_WINNERS_KEY = "cafe_bebe_fallback_winners_v2";
+
+    // All 12 possible 5-in-a-row winning lines
+    const WINNING_LINES = [
+      [0, 1, 2, 3, 4],
+      [5, 6, 7, 8, 9],
+      [10, 11, 12, 13, 14],
+      [15, 16, 17, 18, 19],
+      [20, 21, 22, 23, 24],
+      [0, 5, 10, 15, 20],
+      [1, 6, 11, 16, 21],
+      [2, 7, 12, 17, 22],
+      [3, 8, 13, 18, 23],
+      [4, 9, 14, 19, 24],
+      [0, 6, 12, 18, 24],
+      [4, 8, 12, 16, 20]
+    ];
+
+    // App State
+    let gameState = null;
+    let liveWinners = [];
+    let db = null;
+    let auth = null;
+    let currentUser = null;
+    let firebaseReady = false;
+    let unsubscribeWinners = null;
+
+    const appId = typeof __app_id !== "undefined" ? __app_id : "cafe-bebe-bingo";
+
+    // DOM Elements
+    const welcomeScreen = document.getElementById("welcome-screen");
+    const gameScreen = document.getElementById("game-screen");
+    const startForm = document.getElementById("start-form");
+    const playerNameInput = document.getElementById("player-name-input");
+    const nameError = document.getElementById("name-error");
+
+    const displayPlayerName = document.getElementById("display-player-name");
+    const displayCardId = document.getElementById("display-card-id");
+    const markedCountLabel = document.getElementById("marked-count-label");
+    const bingoBadge = document.getElementById("bingo-badge");
+    const statusHint = document.getElementById("status-hint");
+    const bingoGrid = document.getElementById("bingo-grid");
+
+    // Live Banner & Sync Status
+    const liveWinnerBanner = document.getElementById("live-winner-banner");
+    const liveBannerText = document.getElementById("live-banner-text");
+    const liveBannerSub = document.getElementById("live-banner-sub");
+    const bannerViewWinnersBtn = document.getElementById("banner-view-winners-btn");
+    const winnersCountBadge = document.getElementById("winners-count-badge");
+    const syncStatusDot = document.getElementById("sync-status-dot");
+    const syncStatusText = document.getElementById("sync-status-text");
+
+    // Celebration Modal
+    const bingoModal = document.getElementById("bingo-modal");
+    const modalPlacementBadge = document.getElementById("modal-placement-badge");
+    const bingoModalTitle = document.getElementById("bingo-modal-title");
+    const bingoModalScript = document.getElementById("bingo-modal-script");
+    const bingoModalSubtitle = document.getElementById("bingo-modal-subtitle");
+    const modalPlayerName = document.getElementById("modal-player-name");
+    const modalCardId = document.getElementById("modal-card-id");
+    const modalWinningPrompts = document.getElementById("modal-winning-prompts");
+    const modalViewWinnersBtn = document.getElementById("modal-view-winners-btn");
+    const closeBingoModalBtn = document.getElementById("close-bingo-modal-btn");
+
+    // Winners Board Modal
+    const winnersModal = document.getElementById("winners-modal");
+    const openWinnersBtn = document.getElementById("open-winners-btn");
+    const closeWinnersModalBtn = document.getElementById("close-winners-modal-btn");
+    const doneWinnersModalBtn = document.getElementById("done-winners-modal-btn");
+    const winnersListContainer = document.getElementById("winners-list-container");
+
+    // How To Play Modal
+    const howToModal = document.getElementById("how-to-modal");
+    const openHowToBtn = document.getElementById("open-how-to-btn");
+    const closeHowToBtn = document.getElementById("close-how-to-btn");
+
+    // Reset Card Modal
+    const resetModal = document.getElementById("reset-modal");
+    const openResetBtn = document.getElementById("open-reset-btn");
+    const cancelResetBtn = document.getElementById("cancel-reset-btn");
+    const confirmResetBtn = document.getElementById("confirm-reset-btn");
+
+    // Host Reset Winners Modal
+    const hostResetModal = document.getElementById("host-reset-modal");
+    const openHostResetBtn = document.getElementById("open-host-reset-btn");
+    const cancelHostResetBtn = document.getElementById("cancel-host-reset-btn");
+    const confirmHostResetBtn = document.getElementById("confirm-host-reset-btn");
+
+    /**
+     * ============================================================
+     * FIREBASE INITIALIZATION & REAL-TIME WINNERS SYNC
+     * ============================================================
+     */
+    function getWinnersCollectionRef() {
+      // Strictly adheres to Rule 1: /artifacts/{appId}/public/data/winners
+      return collection(db, "artifacts", appId, "public", "data", "winners");
+    }
+
+    async function initFirebase() {
+      try {
+        const rawConfig = typeof __firebase_config !== "undefined" ? __firebase_config : null;
+        if (!rawConfig) {
+          enableLocalFallbackMode();
+          return;
+        }
+
+        const firebaseConfig = typeof rawConfig === "string" ? JSON.parse(rawConfig) : rawConfig;
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        // Strictly adheres to Rule 3: Authenticate BEFORE any Firestore queries
+        const initialToken = typeof __initial_auth_token !== "undefined" ? __initial_auth_token : null;
+        if (initialToken) {
+          const cred = await signInWithCustomToken(auth, initialToken);
+          currentUser = cred.user;
+        } else {
+          const cred = await signInAnonymously(auth);
+          currentUser = cred.user;
+        }
+
+        firebaseReady = true;
+        syncStatusDot.className = "w-1.5 h-1.5 rounded-full bg-[#5E7554] live-dot";
+        syncStatusText.textContent = "Live winner board connected • Card saved on phone";
+
+        subscribeToWinners();
+      } catch (err) {
+        console.warn("Firebase unavailable, falling back to local mode:", err);
+        enableLocalFallbackMode();
+      }
+    }
+
+    function enableLocalFallbackMode() {
+      firebaseReady = false;
+      syncStatusDot.className = "w-1.5 h-1.5 rounded-full bg-[#734E3A]";
+      syncStatusText.textContent = "Offline mode • Card & winners saved on this phone";
+      liveWinners = loadFallbackWinners();
+      updateWinnersUI();
+    }
+
+    function subscribeToWinners() {
+      if (!firebaseReady || !currentUser || !db) return;
+
+      if (unsubscribeWinners) unsubscribeWinners();
+
+      // Strictly adheres to Rule 2: Simple collection query, sort in JS memory
+      unsubscribeWinners = onSnapshot(
+        getWinnersCollectionRef(),
+        (snapshot) => {
+          const items = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            items.push({ id: docSnap.id, ...data });
+          });
+
+          // Sort chronologically (earliest win = 1st place)
+          items.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+          liveWinners = items;
+          updateWinnersUI();
+        },
+        (error) => {
+          console.error("Error listening to live winners:", error);
+          enableLocalFallbackMode();
+        }
+      );
+    }
+
+    async function recordWin(winType, winningPrompts) {
+      if (!gameState) return;
+
+      const docId = `${gameState.cardId}_${winType}`;
+      const winRecord = {
+        guestName: gameState.playerName,
+        cardId: gameState.cardId,
+        winType, // "BINGO" or "BLACKOUT"
+        winningPrompts,
+        timestamp: Date.now(),
+        userId: currentUser?.uid || "local"
+      };
+
+      if (firebaseReady && currentUser && db) {
+        try {
+          const docRef = doc(db, "artifacts", appId, "public", "data", "winners", docId);
+          await setDoc(docRef, winRecord);
+          return;
+        } catch (err) {
+          console.error("Failed to save win to Firestore, saving locally:", err);
+        }
+      }
+
+      // Fallback local storage
+      const existing = loadFallbackWinners();
+      if (!existing.some((w) => w.id === docId)) {
+        existing.push({ id: docId, ...winRecord });
+        existing.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        saveFallbackWinners(existing);
+        liveWinners = existing;
+        updateWinnersUI();
+      }
+    }
+
+    async function clearAllWinners() {
+      if (firebaseReady && currentUser && db) {
+        try {
+          const snapshot = await getDocs(getWinnersCollectionRef());
+          const deletions = [];
+          snapshot.forEach((docSnap) => {
+            deletions.push(deleteDoc(doc(db, "artifacts", appId, "public", "data", "winners", docSnap.id)));
+          });
+          await Promise.all(deletions);
+        } catch (err) {
+          console.error("Failed to clear Firestore winners:", err);
+        }
+      }
+
+      // Also clear fallback storage
+      try {
+        localStorage.removeItem(FALLBACK_WINNERS_KEY);
+      } catch (err) {
+        console.warn("Unable to clear local winners:", err);
+      }
+
+      if (!firebaseReady) {
+        liveWinners = [];
+        updateWinnersUI();
+      }
+    }
+
+    function loadFallbackWinners() {
+      try {
+        const raw = localStorage.getItem(FALLBACK_WINNERS_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveFallbackWinners(list) {
+      try {
+        localStorage.setItem(FALLBACK_WINNERS_KEY, JSON.stringify(list));
+      } catch (err) {
+        console.warn("Unable to save local winners:", err);
+      }
+    }
+
+    /**
+     * ============================================================
+     * SEEDED RANDOM CARD GENERATOR (25+ UNIQUE CARDS)
+     * ============================================================
+     */
+    function generateCardId() {
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let code = "";
+      for (let i = 0; i < 4; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return code;
+    }
+
+    function hashSeed(str) {
+      let h = 2166136261 >>> 0;
+      for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return h >>> 0;
+    }
+
+    function createSeededRandom(seed) {
+      let a = seed >>> 0;
+      return function () {
+        a |= 0;
+        a = (a + 0x6D2B79F5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function seededShuffle(items, seedString) {
+      const arr = [...items];
+      const rng = createSeededRandom(hashSeed(seedString));
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function createNewGameState(playerName) {
+      const cardId = generateCardId();
+      const shuffled = seededShuffle(PROMPTS, `${playerName.toLowerCase()}-${cardId}`);
+      const selected24 = shuffled.slice(0, 24);
+
+      const squares = [
+        ...selected24.slice(0, FREE_SPACE_INDEX),
+        FREE_SPACE_TEXT,
+        ...selected24.slice(FREE_SPACE_INDEX)
+      ];
+
+      const marked = Array(25).fill(false);
+      marked[FREE_SPACE_INDEX] = true;
+
+      return {
+        playerName: playerName.trim(),
+        cardId,
+        squares,
+        marked,
+        hasWonBingo: false,
+        hasWonBlackout: false
+      };
+    }
+
+    /**
+     * ============================================================
+     * CARD LOCAL STORAGE PERSISTENCE
+     * ============================================================
+     */
+    function saveCardState() {
+      try {
+        localStorage.setItem(CARD_STORAGE_KEY, JSON.stringify(gameState));
+      } catch (err) {
+        console.warn("Unable to save card state:", err);
+      }
+    }
+
+    function loadCardState() {
+      try {
+        const raw = localStorage.getItem(CARD_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (
+          parsed &&
+          typeof parsed.playerName === "string" &&
+          typeof parsed.cardId === "string" &&
+          Array.isArray(parsed.squares) &&
+          parsed.squares.length === 25 &&
+          Array.isArray(parsed.marked) &&
+          parsed.marked.length === 25
+        ) {
+          return parsed;
+        }
+      } catch (err) {
+        console.warn("Cleared invalid saved card:", err);
+      }
+      return null;
+    }
+
+    function clearCardState() {
+      try {
+        localStorage.removeItem(CARD_STORAGE_KEY);
+      } catch (err) {
+        console.warn("Unable to clear saved card:", err);
+      }
+      gameState = null;
+    }
+
+    /**
+     * ============================================================
+     * BOARD EVALUATION (BINGO & BLACKOUT)
+     * ============================================================
+     */
+    function evaluateBoard(marked) {
+      const winningLines = [];
+      const winningIndices = new Set();
+
+      for (const line of WINNING_LINES) {
+        if (line.every((idx) => marked[idx])) {
+          winningLines.push(line);
+          line.forEach((idx) => winningIndices.add(idx));
+        }
+      }
+
+      const markedCount = marked.filter(Boolean).length;
+      const isBlackout = markedCount === 25;
+
+      return {
+        winningLines,
+        winningIndices,
+        markedCount,
+        isBingo: winningLines.length > 0,
+        isBlackout
+      };
+    }
+
+    /**
+     * ============================================================
+     * UI RENDERING
+     * ============================================================
+     */
+    const MATCHA_LEAF_WATERMARK = `
+      <svg class="w-10 h-10 sm:w-11 sm:h-11" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <path d="M12 36C12 20 24 12 36 12C36 26 26 36 12 36Z" fill="#5E7554"/>
+        <path d="M12 36L32 16" stroke="#FAF7F2" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    `;
+
+    const CHECK_SVG = `
+      <svg class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+      </svg>
+    `;
+
+    const FREE_SPACE_ICON = `
+      <svg class="w-4 h-4 sm:w-5 sm:h-5 text-[#3B2316] mb-0.5 shrink-0" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M7 12H21V18.5C21 22.09 18.09 25 14.5 25C10.91 25 8 22.09 8 18.5V12Z" fill="#FAF7F2"/>
+        <path d="M21 14H23.5C25.16 14 26.5 15.34 26.5 17C26.5 18.66 25.16 20 23.5 20H20.8"/>
+        <path d="M11 8C11 6.5 12 6 12 4.5" stroke="#734E3A"/>
+        <path d="M16 8C16 6.5 17 6 17 4.5" stroke="#734E3A"/>
+      </svg>
+    `;
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function formatOrdinal(n) {
+      const s = ["th", "st", "nd", "rd"];
+      const v = n % 100;
+      return n + (s[(v - 20) % 10] || s[v] || s[0]);
+    }
+
+    function formatTime(ts) {
+      if (!ts) return "";
+      try {
+        return new Date(ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      } catch {
+        return "";
+      }
+    }
+
+    function renderScreen() {
+      if (!gameState) {
+        welcomeScreen.classList.remove("hidden");
+        gameScreen.classList.add("hidden");
+        playerNameInput.value = "";
+        nameError.classList.add("hidden");
+        return;
+      }
+
+      welcomeScreen.classList.add("hidden");
+      gameScreen.classList.remove("hidden");
+
+      displayPlayerName.textContent = gameState.playerName;
+      displayCardId.textContent = `CARD #${gameState.cardId}`;
+
+      renderGrid();
+    }
+
+    function renderGrid() {
+      const status = evaluateBoard(gameState.marked);
+      markedCountLabel.textContent = `${status.markedCount} / 25 Marked`;
+
+      if (status.isBlackout) {
+        bingoBadge.textContent = "👑 BLACKOUT WINNER!";
+        bingoBadge.classList.remove("hidden");
+        statusHint.classList.add("hidden");
+      } else if (status.isBingo) {
+        bingoBadge.textContent = "🏆 YOU'RE A WINNER!";
+        bingoBadge.classList.remove("hidden");
+        statusHint.classList.add("hidden");
+      } else {
+        bingoBadge.classList.add("hidden");
+        statusHint.classList.remove("hidden");
+      }
+
+      bingoGrid.innerHTML = "";
+
+      gameState.squares.forEach((text, index) => {
+        const isFree = index === FREE_SPACE_INDEX;
+        const isMarked = gameState.marked[index];
+        const isWinner = status.winningIndices.has(index);
+
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.setAttribute("role", "gridcell");
+        cell.setAttribute("aria-pressed", String(isMarked));
+        cell.setAttribute("aria-label", isFree ? `Free space: ${text}` : text);
+
+        const classes = ["bingo-cell"];
+        if (isFree) classes.push("is-free");
+        if (isMarked) classes.push("is-marked");
+        if (isWinner) classes.push("is-winner");
+        cell.className = classes.join(" ");
+
+        if (isFree) {
+          cell.innerHTML = `
+            <span class="check-badge">${CHECK_SVG}</span>
+            ${FREE_SPACE_ICON}
+            <span class="text-[8.5px] sm:text-[9.5px] font-bold uppercase tracking-[0.14em] text-[#5E7554] leading-none mb-0.5 z-10">FREE</span>
+            <span class="cell-text">${escapeHtml(text)}</span>
+          `;
+        } else {
+          cell.innerHTML = `
+            <span class="mark-watermark">${MATCHA_LEAF_WATERMARK}</span>
+            <span class="check-badge">${CHECK_SVG}</span>
+            <span class="cell-text">${escapeHtml(text)}</span>
+          `;
+          cell.addEventListener("click", () => toggleCell(index));
+        }
+
+        bingoGrid.appendChild(cell);
+      });
+    }
+
+    function updateWinnersUI() {
+      winnersCountBadge.textContent = String(liveWinners.length);
+
+      // Update Live Winner Banner at the top of the app
+      if (liveWinners.length > 0) {
+        liveWinnerBanner.classList.remove("hidden");
+        const firstWinner = liveWinners[0];
+        const extraCount = liveWinners.length - 1;
+
+        if (extraCount === 0) {
+          const label = firstWinner.winType === "BLACKOUT" ? "Blackout Winner" : "Bingo Winner";
+          liveBannerText.textContent = `${label}: ${firstWinner.guestName}!`;
+          liveBannerSub.textContent = `Card #${firstWinner.cardId} • Won at ${formatTime(firstWinner.timestamp)}`;
+        } else {
+          liveBannerText.textContent = `Bingo Winner: ${firstWinner.guestName} (+${extraCount} more)`;
+          liveBannerSub.textContent = `${liveWinners.length} verified winners on the board`;
+        }
+      } else {
+        liveWinnerBanner.classList.add("hidden");
+      }
+
+      // Refresh Winners Board modal list if it's rendered
+      renderWinnersList();
+    }
+
+    function renderWinnersList() {
+      if (liveWinners.length === 0) {
+        winnersListContainer.innerHTML = `
+          <div class="text-center py-8 px-4">
+            <div class="text-3xl mb-2">☕</div>
+            <p class="font-serif-display text-lg font-semibold text-[#3B2316]">No Winners Yet</p>
+            <p class="text-xs text-[#734E3A] mt-1">
+              Keep watching Brayden! As soon as a guest completes 5 in a row, they'll appear here automatically.
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      winnersListContainer.innerHTML = liveWinners
+        .map((w, idx) => {
+          const place = formatOrdinal(idx + 1);
+          const isMe = gameState && w.cardId === gameState.cardId;
+          const badgeStyle = w.winType === "BLACKOUT"
+            ? "bg-[#3B2316] text-[#FAF7F2]"
+            : "bg-[#C8D6B9] text-[#3B2316]";
+          const promptsHtml = Array.isArray(w.winningPrompts) && w.winningPrompts.length > 0
+            ? `<ul class="mt-2 pt-2 border-t border-[#F0EAE0] grid grid-cols-1 gap-1 text-[11px] text-[#734E3A]">
+                ${w.winningPrompts.map((p) => `<li class="flex items-start gap-1.5"><span class="text-[#5E7554] font-bold">✓</span><span>${escapeHtml(p)}</span></li>`).join("")}
+               </ul>`
+            : "";
+
+          return `
+            <div class="bg-white rounded-2xl border ${isMe ? "border-[#5E7554] ring-1 ring-[#C8D6B9]" : "border-[#DDD3C3]"} p-3.5 shadow-2xs">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full ${badgeStyle}">
+                      ${place} • ${escapeHtml(w.winType || "BINGO")}
+                    </span>
+                    ${isMe ? '<span class="text-[10px] font-bold text-[#5E7554]">(You)</span>' : ""}
+                  </div>
+                  <h3 class="text-base font-bold text-[#3B2316] mt-1 truncate">
+                    ${escapeHtml(w.guestName)}
+                  </h3>
+                </div>
+                <div class="text-right shrink-0">
+                  <div class="text-[11px] font-bold text-[#3B2316]">#${escapeHtml(w.cardId)}</div>
+                  <div class="text-[10px] text-[#734E3A]">${escapeHtml(formatTime(w.timestamp))}</div>
+                </div>
+              </div>
+              ${promptsHtml}
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    /**
+     * ============================================================
+     * GAMEPLAY INTERACTIONS
+     * ============================================================
+     */
+    async function toggleCell(index) {
+      if (index === FREE_SPACE_INDEX || !gameState) return;
+
+      gameState.marked[index] = !gameState.marked[index];
+      const status = evaluateBoard(gameState.marked);
+
+      saveCardState();
+      renderGrid();
+
+      // Check for first Blackout
+      if (status.isBlackout && !gameState.hasWonBlackout) {
+        gameState.hasWonBlackout = true;
+        gameState.hasWonBingo = true;
+        saveCardState();
+
+        const blackoutSummary = ["Completed all 25 squares (Full Blackout!)"];
+        await recordWin("BLACKOUT", blackoutSummary);
+        openCelebrationModal(status, true, blackoutSummary);
+        launchConfetti(150);
+        return;
+      }
+
+      // Check for first Bingo (5 in a row)
+      if (status.isBingo && !gameState.hasWonBingo) {
+        gameState.hasWonBingo = true;
+        saveCardState();
+
+        const firstLine = status.winningLines[0];
+        const winningPrompts = firstLine.map((i) => gameState.squares[i]);
+        await recordWin("BINGO", winningPrompts);
+        openCelebrationModal(status, false, winningPrompts);
+        launchConfetti(110);
+      }
+    }
+
+    function openCelebrationModal(status, isBlackout, winningPrompts) {
+      // Determine placement from liveWinners list
+      const myIndex = liveWinners.findIndex(
+        (w) => w.cardId === gameState.cardId && w.winType === (isBlackout ? "BLACKOUT" : "BINGO")
+      );
+      const placeNumber = myIndex >= 0 ? myIndex + 1 : liveWinners.length || 1;
+
+      if (isBlackout) {
+        modalPlacementBadge.textContent = `${formatOrdinal(placeNumber)} Place • Blackout!`;
+        bingoModalTitle.textContent = "You're a winner!";
+        bingoModalScript.textContent = "Full Café Bébé Blackout!";
+        bingoModalSubtitle.textContent = "Incredible — you marked every single square! Show the host your phone.";
+      } else {
+        modalPlacementBadge.textContent = `${formatOrdinal(placeNumber)} Place Winner!`;
+        bingoModalTitle.textContent = "You're a winner!";
+        bingoModalScript.textContent = "Cheers to Café Bébé!";
+        bingoModalSubtitle.textContent = "Your win is live on the Winners Board! Show these 5 prompts to the host.";
+      }
+
+      modalPlayerName.textContent = gameState.playerName;
+      modalCardId.textContent = `CARD #${gameState.cardId}`;
+
+      const promptsToShow = winningPrompts && winningPrompts.length > 0
+        ? winningPrompts
+        : (status.winningLines[0] || []).map((i) => gameState.squares[i]);
+
+      modalWinningPrompts.innerHTML = promptsToShow
+        .map((p) => `<li class="flex items-start gap-1.5"><span class="text-[#5E7554] font-bold">✓</span><span>${escapeHtml(p)}</span></li>`)
+        .join("");
+
+      bingoModal.classList.remove("hidden");
+    }
+
+    /**
+     * ============================================================
+     * PURE-JS CANVAS CONFETTI IN CAFÉ BÉBÉ PALETTE
+     * ============================================================
+     */
+    const confettiCanvas = document.getElementById("confetti-canvas");
+    const ctx = confettiCanvas.getContext("2d");
+    let confettiParticles = [];
+    let confettiAnimId = null;
+
+    const CONFETTI_COLORS = [
+      "#3B2316", // Espresso
+      "#734E3A", // Mocha
+      "#C8D6B9", // Soft Matcha
+      "#5E7554", // Deep Matcha
+      "#C89B4F", // Warm Gold
+      "#FAF7F2"  // Soft Cream
+    ];
+
+    function resizeConfettiCanvas() {
+      confettiCanvas.width = window.innerWidth;
+      confettiCanvas.height = window.innerHeight;
+    }
+
+    window.addEventListener("resize", resizeConfettiCanvas);
+    resizeConfettiCanvas();
+
+    function launchConfetti(count = 110) {
+      resizeConfettiCanvas();
+      const originX = confettiCanvas.width / 2;
+      const originY = confettiCanvas.height * 0.25;
+
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 3 + Math.random() * 7.8;
+        confettiParticles.push({
+          x: originX + (Math.random() - 0.5) * 90,
+          y: originY + (Math.random() - 0.5) * 40,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 4.8,
+          size: 5 + Math.random() * 6,
+          color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+          rotation: Math.random() * 360,
+          rotationSpeed: (Math.random() - 0.5) * 11,
+          gravity: 0.15 + Math.random() * 0.08,
+          drag: 0.985,
+          opacity: 1,
+          shape: Math.random() > 0.35 ? "rect" : "circle"
+        });
+      }
+
+      if (!confettiAnimId) {
+        animateConfetti();
+      }
+    }
+
+    function animateConfetti() {
+      ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+
+      for (let i = confettiParticles.length - 1; i >= 0; i--) {
+        const p = confettiParticles[i];
+        p.vx *= p.drag;
+        p.vy = p.vy * p.drag + p.gravity;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rotation += p.rotationSpeed;
+
+        if (p.y > confettiCanvas.height * 0.78) {
+          p.opacity -= 0.024;
+        }
+
+        if (p.opacity <= 0 || p.y > confettiCanvas.height + 20) {
+          confettiParticles.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.opacity);
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.fillStyle = p.color;
+
+        if (p.shape === "rect") {
+          ctx.fillRect(-p.size / 2, -p.size / 3, p.size, p.size * 0.65);
+        } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size * 0.42, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      if (confettiParticles.length > 0) {
+        confettiAnimId = requestAnimationFrame(animateConfetti);
+      } else {
+        confettiAnimId = null;
+        ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+      }
+    }
+
+    /**
+     * ============================================================
+     * EVENT LISTENERS & INITIALIZATION
+     * ============================================================
+     */
+
+    // Welcome Form Submit ("Brew My Bingo Card")
+    startForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const enteredName = playerNameInput.value.trim();
+
+      if (!enteredName) {
+        nameError.classList.remove("hidden");
+        playerNameInput.focus();
+        return;
+      }
+
+      nameError.classList.add("hidden");
+      gameState = createNewGameState(enteredName);
+      saveCardState();
+      renderScreen();
+    });
+
+    playerNameInput.addEventListener("input", () => {
+      if (playerNameInput.value.trim()) {
+        nameError.classList.add("hidden");
+      }
+    });
+
+    // Re-open winner celebration modal from status badge
+    bingoBadge.addEventListener("click", () => {
+      if (!gameState) return;
+      const status = evaluateBoard(gameState.marked);
+      if (status.isBingo) {
+        const prompts = status.isBlackout
+          ? ["Completed all 25 squares (Full Blackout!)"]
+          : (status.winningLines[0] || []).map((i) => gameState.squares[i]);
+        openCelebrationModal(status, status.isBlackout, prompts);
+      }
+    });
+
+    // Celebration Modal Buttons
+    closeBingoModalBtn.addEventListener("click", () => bingoModal.classList.add("hidden"));
+    bingoModal.addEventListener("click", (e) => {
+      if (e.target === bingoModal) bingoModal.classList.add("hidden");
+    });
+
+    modalViewWinnersBtn.addEventListener("click", () => {
+      bingoModal.classList.add("hidden");
+      renderWinnersList();
+      winnersModal.classList.remove("hidden");
+    });
+
+    // Winners Board Modal Controls
+    const openWinnersBoard = () => {
+      renderWinnersList();
+      winnersModal.classList.remove("hidden");
+    };
+
+    openWinnersBtn.addEventListener("click", openWinnersBoard);
+    bannerViewWinnersBtn.addEventListener("click", openWinnersBoard);
+    closeWinnersModalBtn.addEventListener("click", () => winnersModal.classList.add("hidden"));
+    doneWinnersModalBtn.addEventListener("click", () => winnersModal.classList.add("hidden"));
+    winnersModal.addEventListener("click", (e) => {
+      if (e.target === winnersModal) winnersModal.classList.add("hidden");
+    });
+
+    // How to Play Modal Controls
+    openHowToBtn.addEventListener("click", () => howToModal.classList.remove("hidden"));
+    closeHowToBtn.addEventListener("click", () => howToModal.classList.add("hidden"));
+    howToModal.addEventListener("click", (e) => {
+      if (e.target === howToModal) howToModal.classList.add("hidden");
+    });
+
+    // Reset Card Modal Controls
+    openResetBtn.addEventListener("click", () => resetModal.classList.remove("hidden"));
+    cancelResetBtn.addEventListener("click", () => resetModal.classList.add("hidden"));
+    resetModal.addEventListener("click", (e) => {
+      if (e.target === resetModal) resetModal.classList.add("hidden");
+    });
+
+    confirmResetBtn.addEventListener("click", () => {
+      resetModal.classList.add("hidden");
+      clearCardState();
+      renderScreen();
+    });
+
+    // Host Reset Winners Modal Controls
+    openHostResetBtn.addEventListener("click", () => hostResetModal.classList.remove("hidden"));
+    cancelHostResetBtn.addEventListener("click", () => hostResetModal.classList.add("hidden"));
+    hostResetModal.addEventListener("click", (e) => {
+      if (e.target === hostResetModal) hostResetModal.classList.add("hidden");
+    });
+
+    confirmHostResetBtn.addEventListener("click", async () => {
+      hostResetModal.classList.add("hidden");
+      await clearAllWinners();
+    });
+
+    // Boot App
+    window.addEventListener("DOMContentLoaded", () => {
+      gameState = loadCardState();
+      renderScreen();
+      initFirebase();
+    });
+  </script>
+</body>
+</html>
